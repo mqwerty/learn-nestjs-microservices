@@ -6,12 +6,15 @@ services:
       args:
         - APP_NAME=workflows-service
     command: npm run start:dev -- workflows-service
+    ports:
+      - '3001:3001'
     environment:
       - POSTGRES_HOST=workflows-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=workflows
+      - NATS_URL=nats://nats:4222
     volumes:
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -20,12 +23,7 @@ services:
       - ./apps/workflows-service:/usr/src/app/apps/workflows-service
     depends_on:
       - workflows-db
-  workflows-db:
-    image: postgres:17-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=workflows
+      - nats
   virtual-facility:
     build:
       context: .
@@ -34,13 +32,14 @@ services:
         - APP_NAME=virtual-facility
     command: npm run start:dev -- virtual-facility
     ports:
-      - 3000:3000
+      - '3000:3000'
     environment:
       - POSTGRES_HOST=virtual-facility-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=virtual-facility
+      - NATS_URL=nats://nats:4222
     volumes:
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -49,10 +48,22 @@ services:
       - ./apps/virtual-facility:/usr/src/app/apps/virtual-facility
     depends_on:
       - virtual-facility-db
+      - nats
       - workflows-service
+  workflows-db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=workflows
   virtual-facility-db:
     image: postgres:17-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=virtual-facility
+  nats:
+    image: nats:2-alpine
+    ports:
+      - '4222:4222'
+      - '8222:8222'
