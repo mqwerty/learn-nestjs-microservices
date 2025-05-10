@@ -1,23 +1,23 @@
 import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { MicroserviceOptions, Transport } from '@nestjs/microservices'
-import { WorkflowsServiceModule } from './workflows-service.module'
+import { AlarmsServiceModule } from './alarms-service.module'
 
 async function bootstrap() {
-  const app = await NestFactory.create(WorkflowsServiceModule)
+  const app = await NestFactory.create(AlarmsServiceModule)
   app.useGlobalPipes(new ValidationPipe())
   app.connectMicroservice<MicroserviceOptions>(
     {
       transport: Transport.NATS,
       options: {
         servers: process.env.NATS_URL,
-        queue: 'workflows-service',
+        queue: 'alarms-service',
       },
     },
     { inheritAppConfig: true }
   )
   await app.startAllMicroservices()
-  await app.listen(3001)
+  await app.listen(3000)
 }
 
 void bootstrap()
