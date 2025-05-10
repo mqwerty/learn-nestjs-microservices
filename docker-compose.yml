@@ -1,12 +1,12 @@
 services:
   rabbitmq:
     image: rabbitmq:4-management-alpine
-    environment:
-      - RABBITMQ_DEFAULT_USER=main
-      - RABBITMQ_DEFAULT_PASS=main
     ports:
       - '5672:5672'
       - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=main
+      - RABBITMQ_DEFAULT_PASS=main
     healthcheck:
       test: [ 'CMD', 'rabbitmq-diagnostics', '-q', 'ping' ]
       interval: 5s
@@ -17,18 +17,58 @@ services:
     ports:
       - '4222:4222'
       - '8222:8222'
-  workflows-db:
-    image: postgres:17-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=workflows
   virtual-facility-db:
     image: postgres:17-alpine
+    ports:
+      - '54320:5432'
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=virtual-facility
+    healthcheck:
+      test: [ 'CMD', 'pg_isready', '-U', 'postgres' ]
+      interval: 1s
+      timeout: 1s
+      retries: 60
+  workflows-db:
+    image: postgres:17-alpine
+    ports:
+      - '54321:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=workflows
+    healthcheck:
+      test: [ 'CMD', 'pg_isready', '-U', 'postgres' ]
+      interval: 1s
+      timeout: 1s
+      retries: 60
+  virtual-facility:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - APP_NAME=virtual-facility
+    command: npm run start:dev -- virtual-facility
+    ports:
+      - '3000:3000'
+    environment:
+      - POSTGRES_HOST=virtual-facility-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=virtual-facility
+      - RABBITMQ_URL=amqp://main:main@rabbitmq:5672
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/virtual-facility:/usr/src/app/apps/virtual-facility
+    depends_on:
+      - virtual-facility-db
+      - rabbitmq
+      - workflows-service
   workflows-service:
     build:
       context: .
@@ -56,32 +96,6 @@ services:
       - rabbitmq
   #  deploy:
   #    replicas: 3
-  virtual-facility:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-      args:
-        - APP_NAME=virtual-facility
-    command: npm run start:dev -- virtual-facility
-    ports:
-      - '3000:3000'
-    environment:
-      - POSTGRES_HOST=virtual-facility-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=virtual-facility
-      - RABBITMQ_URL=amqp://main:main@rabbitmq:5672
-    volumes:
-      - ./libs:/usr/src/app/libs
-      - ./package.json:/usr/src/app/package.json
-      - ./tsconfig.json:/usr/src/app/tsconfig.json
-      - ./node_modules:/usr/src/app/node_modules
-      - ./apps/virtual-facility:/usr/src/app/apps/virtual-facility
-    depends_on:
-      - virtual-facility-db
-      - rabbitmq
-      - workflows-service
   alarms-service:
     build:
       context: .

@@ -29,7 +29,7 @@ export class WorkflowsService {
     const workflow = this.workflowsRepository.create({ ...createWorkflowDto })
     const newWorkflowEntity = await this.workflowsRepository.save(workflow)
 
-    this.logger.debug(`Created workflow with id ${newWorkflowEntity.id} for building ${newWorkflowEntity.buildingId}`)
+    this.logger.debug(`Created workflow ${JSON.stringify(newWorkflowEntity)}`)
     return newWorkflowEntity
   }
 

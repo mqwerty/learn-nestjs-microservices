@@ -3,8 +3,9 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { InjectRepository } from '@nestjs/typeorm'
 import { lastValueFrom } from 'rxjs'
-import { Repository } from 'typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { WORKFLOWS_SERVICE } from '../constants'
+import { Outbox } from '../outbox/entities/outbox.entity'
 import { CreateBuildingDto } from './dto/create-building.dto'
 import { UpdateBuildingDto } from './dto/update-building.dto'
 import { Building } from './entities/building.entity'
@@ -17,7 +18,8 @@ export class BuildingsService {
     @InjectRepository(Building)
     private readonly buildingsRepository: Repository<Building>,
     @Inject(WORKFLOWS_SERVICE)
-    private readonly workflowsService: ClientProxy
+    private readonly workflowsService: ClientProxy,
+    private readonly dataSource: DataSource
   ) {}
 
   async findAll(): Promise<Building[]> {
@@ -33,13 +35,36 @@ export class BuildingsService {
   }
 
   async create(createBuildingDto: CreateBuildingDto): Promise<Building> {
-    const building = this.buildingsRepository.create({ ...createBuildingDto })
-    const newBuildingEntity = await this.buildingsRepository.save(building)
-    console.log(newBuildingEntity)
+    const queryRunner = this.dataSource.createQueryRunner()
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
 
-    // Create a workflow for the new building
-    await this.createWorkflow(newBuildingEntity.id)
-    return newBuildingEntity
+    const buildingsRepository = queryRunner.manager.getRepository(Building)
+    const outboxRepository = queryRunner.manager.getRepository(Outbox)
+
+    try {
+      const building = buildingsRepository.create({ ...createBuildingDto })
+      const newBuildingEntity = await buildingsRepository.save(building)
+
+      await outboxRepository.save({
+        type: 'workflows.create',
+        payload: {
+          name: 'My workflow',
+          buildingId: building.id,
+        },
+        target: WORKFLOWS_SERVICE.description,
+      })
+
+      await queryRunner.commitTransaction()
+
+      this.logger.debug(`Created building ${JSON.stringify(newBuildingEntity)}`)
+      return newBuildingEntity
+    } catch (error) {
+      await queryRunner.rollbackTransaction()
+      throw error
+    } finally {
+      await queryRunner.release()
+    }
   }
 
   async update(id: number, updateBuildingDto: UpdateBuildingDto): Promise<Building> {
