@@ -1,13 +1,18 @@
 import { Controller, Inject, Logger } from '@nestjs/common'
 import { type ClientProxy, EventPattern, Payload } from '@nestjs/microservices'
 import { lastValueFrom } from 'rxjs'
-import { MESSAGE_BROKER } from './constants'
+import { NATS_MESSAGE_BROKER, NOTIFICATIONS_SERVICE } from './constants'
 
 @Controller()
 export class AlarmsServiceController {
   private readonly logger = new Logger(AlarmsServiceController.name)
 
-  constructor(@Inject(MESSAGE_BROKER) private readonly messageBroker: ClientProxy) {}
+  constructor(
+    @Inject(NATS_MESSAGE_BROKER)
+    private readonly natsMessageBroker: ClientProxy,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationService: ClientProxy
+  ) {}
 
   @EventPattern('alarm.created')
   async create(@Payload() data: { name: string; buildingId: number }) {
@@ -19,10 +24,10 @@ export class AlarmsServiceController {
     // 1. "Alarms service" would emit an event to the "Alarm classifier service" to classify the alarm.
     // 2. "Alarm classifier service" would classify the alarm and emit an event to the "Notifications service" to notify other services about the alarm.
     // 3. "Notifications service" would subscribe to the "alarm.classified" event and notify other services about the alarm.
-    const alarmClassification: { category: string } = await lastValueFrom(this.messageBroker.send('alarm.classify', data))
+    const alarmClassification: { category: string } = await lastValueFrom(this.natsMessageBroker.send('alarm.classify', data))
     this.logger.debug(`Alarm "${data.name}" classified as ${alarmClassification.category}`)
 
-    const notify$ = this.messageBroker.emit('notification.send', {
+    const notify$ = this.notificationService.emit('notification.send', {
       alarm: data,
       category: alarmClassification.category,
     })
