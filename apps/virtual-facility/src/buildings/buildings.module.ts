@@ -12,9 +12,10 @@ import { Building } from './entities/building.entity'
     ClientsModule.register([
       {
         name: WORKFLOWS_SERVICE,
-        transport: Transport.NATS,
+        transport: Transport.RMQ,
         options: {
-          servers: process.env.NATS_URL,
+          urls: [process.env.RABBITMQ_URL as string],
+          queue: 'workflows-service',
         },
       },
     ]),
