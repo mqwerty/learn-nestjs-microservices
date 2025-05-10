@@ -24,6 +24,8 @@ services:
     depends_on:
       - workflows-db
       - nats
+  #  deploy:
+  #    replicas: 3
   virtual-facility:
     build:
       context: .
