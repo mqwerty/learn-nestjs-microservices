@@ -12,6 +12,7 @@ async function bootstrap() {
       options: {
         urls: [process.env.RABBITMQ_URL as string],
         queue: 'workflows-service',
+        noAck: false,
       },
     },
     { inheritAppConfig: true }

@@ -8,7 +8,7 @@ services:
       - RABBITMQ_DEFAULT_USER=main
       - RABBITMQ_DEFAULT_PASS=main
     healthcheck:
-      test: [ 'CMD', 'rabbitmq-diagnostics', '-q', 'ping' ]
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,7 +26,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=virtual-facility
     healthcheck:
-      test: [ 'CMD', 'pg_isready', '-U', 'postgres' ]
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
       interval: 1s
       timeout: 1s
       retries: 60
@@ -39,7 +39,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=workflows
     healthcheck:
-      test: [ 'CMD', 'pg_isready', '-U', 'postgres' ]
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
       interval: 1s
       timeout: 1s
       retries: 60
@@ -78,6 +78,8 @@ services:
     command: npm run start:dev -- workflows-service
     ports:
       - '3001:3001'
+    #deploy:
+    #  replicas: 3
     environment:
       - POSTGRES_HOST=workflows-db
       - POSTGRES_PORT=5432
@@ -94,8 +96,6 @@ services:
     depends_on:
       - workflows-db
       - rabbitmq
-  #  deploy:
-  #    replicas: 3
   alarms-service:
     build:
       context: .

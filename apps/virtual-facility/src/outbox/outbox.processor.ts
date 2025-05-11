@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { ClientProxy } from '@nestjs/microservices'
+import { ClientProxy, RmqRecord } from '@nestjs/microservices'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import { lastValueFrom } from 'rxjs'
@@ -38,6 +38,7 @@ export class OutboxProcessor {
   }
 
   async dispatchWorkflowEvent(outbox: Outbox) {
-    await lastValueFrom(this.workflowsService.emit(outbox.type, outbox.payload))
+    const rmqRecord = new RmqRecord(outbox.payload, { messageId: `${outbox.id}` })
+    await lastValueFrom(this.workflowsService.emit(outbox.type, rmqRecord))
   }
 }

@@ -11,7 +11,7 @@ export class NotificationsServiceController {
     this.logger.debug(`Sending notification about the alarm: ${JSON.stringify(data)}`)
 
     const channel: Channel = context.getChannelRef()
-    const originalMsg = context.getMessage() as unknown as Message
+    const originalMsg = context.getMessage() as Message
 
     if (originalMsg.fields.redelivered) {
       this.logger.verbose(`Message was already redelivered. Acknowledging the message and discarding it.`)
@@ -19,7 +19,7 @@ export class NotificationsServiceController {
       return
     }
 
-    this.logger.verbose(`Nack message.`)
+    this.logger.verbose(`Nack message`)
     channel.nack(originalMsg)
   }
 }
