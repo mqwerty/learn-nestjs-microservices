@@ -1,8 +1,9 @@
+import { TracingModule } from '@app/tracing'
 import { Module } from '@nestjs/common'
 import { AlarmsClassifierServiceController } from './alarms-classifier-service.controller'
 
 @Module({
-  imports: [],
+  imports: [TracingModule],
   controllers: [AlarmsClassifierServiceController],
   providers: [],
 })
